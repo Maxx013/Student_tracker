@@ -63,27 +63,65 @@ async function loginUser(email, password) {
 
 // Google Sign In
 async function googleSignIn() {
-    try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        const result = await auth.signInWithPopup(provider);
-        const user = result.user;
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('email');
+    provider.addScope('profile');
 
-        // Check if user doc exists, if not create one
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        if (!userDoc.exists) {
-            await db.collection('users').doc(user.uid).set({
-                name: user.displayName,
-                email: user.email,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+    try {
+        const result = await auth.signInWithPopup(provider);
+        await handleGoogleResult(result);
+    } catch (error) {
+        console.error('Google Sign-In Error:', error.code, error.message);
+
+        // If popup was blocked, try redirect method
+        if (error.code === 'auth/popup-blocked') {
+            console.log('Popup blocked, trying redirect...');
+            showToast('Popup blocked! Redirecting to Google sign-in...', 'warning');
+            try {
+                await auth.signInWithRedirect(provider);
+            } catch (redirectError) {
+                console.error('Redirect Error:', redirectError);
+                throw redirectError;
+            }
+            return;
         }
 
-        if (typeof updateStreak === 'function') await updateStreak();
-        window.location.href = '/dashboard';
-    } catch (error) {
         throw error;
     }
 }
+
+// Handle Google sign-in result (works for both popup and redirect)
+async function handleGoogleResult(result) {
+    const user = result.user;
+
+    // Check if user doc exists, if not create one
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    if (!userDoc.exists) {
+        await db.collection('users').doc(user.uid).set({
+            name: user.displayName || 'User',
+            email: user.email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+
+    showToast('Signed in with Google successfully!', 'success');
+    if (typeof updateStreak === 'function') await updateStreak();
+    window.location.href = '/dashboard';
+}
+
+// Handle redirect result on page load (for when popup was blocked)
+auth.getRedirectResult().then((result) => {
+    if (result && result.user) {
+        handleGoogleResult(result);
+    }
+}).catch((error) => {
+    if (error.code && error.code !== 'auth/popup-closed-by-user') {
+        console.error('Redirect result error:', error.code, error.message);
+        if (typeof showToast === 'function') {
+            showToast(getAuthErrorMessage(error.code), 'error');
+        }
+    }
+});
 
 // Forgot Password
 async function resetPassword(email) {
