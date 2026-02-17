@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Student Progress Tracker</title>
+    <meta name="description" content="Visualize your academic performance with charts and analytics.">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+
+    <div class="app-layout">
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="/dashboard" class="nav-logo">
+                    <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+                    ProgressTrack
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="sidebar-nav-label">Main Menu</div>
+                <a href="/dashboard" class="sidebar-nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+                <a href="/subjects" class="sidebar-nav-item"><i class="fas fa-book-open"></i> Subjects</a>
+                <a href="/goals" class="sidebar-nav-item"><i class="fas fa-bullseye"></i> Goals</a>
+                <a href="/analytics" class="sidebar-nav-item active"><i class="fas fa-chart-bar"></i> Analytics</a>
+                <div class="sidebar-nav-label" style="margin-top: var(--space-lg);">Account</div>
+                <a href="#" class="sidebar-nav-item" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>
+                    Logout</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="sidebar-avatar">US</div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name user-display-name">Loading...</div>
+                        <div class="sidebar-user-email user-display-email">...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="top-navbar">
+                <div class="top-navbar-left">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                    <h1 class="page-title">Analytics</h1>
+                </div>
+                <div class="top-navbar-right">
+                    <button class="btn-export" id="exportBtn" style="display:none;" onclick="handleExport()">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+                        <i class="fas fa-moon theme-toggle-icon"></i>
+                    </button>
+                    <div class="navbar-user">
+                        <i class="fas fa-user-circle" style="font-size:1.375rem; color: var(--primary-500);"></i>
+                        <span class="navbar-user-name user-display-name">Loading...</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content" id="analytics-content">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="/js/firebase-config.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/firestore.js"></script>
+    <script src="/js/insights.js"></script>
+    <script src="/js/export.js"></script>
+
+    <script>
+        let cachedStats = null;
+        let cachedSubjects = [];
+        let cachedTopics = [];
+
+        requireAuth().then(async (user) => {
+            updateUserUI(user);
+            await loadAnalytics();
+        });
+
+        async function loadAnalytics() {
+            const content = document.getElementById('analytics-content');
+
+            try {
+                const { subjects, allTopics } = await getAllUserData();
+                cachedSubjects = subjects;
+                cachedTopics = allTopics;
+
+                if (subjects.length === 0) {
+                    content.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon"><i class="fas fa-chart-bar"></i></div>
+              <h3>No Data to Analyze</h3>
+              <p>Add subjects and topics to see your performance analytics here.</p>
+              <a href="/subjects" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add Subject</a>
+            </div>
+          `;
+                    return;
+                }
+
+                // Show export button
+                document.getElementById('exportBtn').style.display = 'inline-flex';
+
+                const totalTopics = allTopics.length;
+                const completedTopics = allTopics.filter(t => t.completed).length;
+                const pendingTopics = totalTopics - completedTopics;
+                const avgScore = allTopics.filter(t => t.score != null).length > 0
+                    ? Math.round(allTopics.filter(t => t.score != null).map(t => t.score).reduce((a, b) => a + b, 0) / allTopics.filter(t => t.score != null).length)
+                    : 0;
+
+                cachedStats = {
+                    totalSubjects: subjects.length,
+                    totalTopics, completedTopics, pendingTopics,
+                    completionPercent: totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0,
+                    avgScore, subjects, allTopics
+                };
+
+                // Performance prediction
+                const prediction = predictPerformance(allTopics);
+                let predictionHTML = '';
+                if (prediction) {
+                    const trendIcon = prediction.trend === 'up' ? 'fa-arrow-up text-success'
+                        : prediction.trend === 'down' ? 'fa-arrow-down text-danger'
+                            : 'fa-minus text-muted';
+                    predictionHTML = `
+                        <div class="widget-card animate-in" style="grid-column: 1 / -1;">
+                            <div class="widget-header">
+                                <div class="widget-icon" style="background:#ede9fe;color:#8b5cf6;"><i class="fas fa-brain"></i></div>
+                                <h3>Performance Prediction</h3>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:var(--space-xl);flex-wrap:wrap;">
+                                <div class="prediction-card" style="flex:1;min-width:200px;margin:0;">
+                                    <div class="prediction-label">Predicted Next Score</div>
+                                    <div class="prediction-value">
+                                        <span class="prediction-number">${prediction.predicted}</span>
+                                        <i class="fas ${trendIcon}" style="font-size:1.25rem;"></i>
+                                    </div>
+                                    <div class="prediction-meta">Based on last 3 scores: ${prediction.last3.join(', ')}</div>
+                                </div>
+                                <div style="flex:1;min-width:200px;">
+                                    <p style="color:var(--gray-500);font-size:0.875rem;">
+                                        <strong>Trend:</strong> ${prediction.trend === 'up' ? '📈 Improving' : prediction.trend === 'down' ? '📉 Declining' : '➡️ Stable'}<br>
+                                        <strong>Recent average:</strong> ${prediction.avg}%
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                content.innerHTML = `
+          <!-- Quick Stats -->
+          <div class="stats-grid" style="margin-bottom: var(--space-xl);">
+            <div class="stat-card blue animate-in">
+              <div class="stat-icon"><i class="fas fa-book-open"></i></div>
+              <div class="stat-info"><h3>${subjects.length}</h3><p>Subjects</p></div>
+            </div>
+            <div class="stat-card green animate-in">
+              <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+              <div class="stat-info"><h3>${completedTopics}</h3><p>Completed</p></div>
+            </div>
+            <div class="stat-card orange animate-in">
+              <div class="stat-icon"><i class="fas fa-clock"></i></div>
+              <div class="stat-info"><h3>${pendingTopics}</h3><p>Pending</p></div>
+            </div>
+            <div class="stat-card purple animate-in">
+              <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+              <div class="stat-info"><h3>${totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0}%</h3><p>Overall</p></div>
+            </div>
+          </div>
+
+          ${predictionHTML}
+
+          <!-- Charts Grid -->
+          <div class="analytics-grid">
+            <div class="chart-card animate-in">
+              <h3><i class="fas fa-chart-bar" style="color: var(--primary-500); margin-right: 0.5rem;"></i>Subject-wise Completion</h3>
+              <div class="chart-container"><canvas id="barChart"></canvas></div>
+            </div>
+            <div class="chart-card animate-in">
+              <h3><i class="fas fa-chart-pie" style="color: var(--primary-500); margin-right: 0.5rem;"></i>Topics Status</h3>
+              <div class="chart-container" style="display:flex;align-items:center;justify-content:center;">
+                <canvas id="pieChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-card animate-in" style="grid-column: 1 / -1;">
+              <h3><i class="fas fa-chart-line" style="color: var(--primary-500); margin-right: 0.5rem;"></i>Score Trend Over Time</h3>
+              <div class="chart-container"><canvas id="lineChart"></canvas></div>
+            </div>
+            <div class="chart-card animate-in" style="grid-column: 1 / -1;">
+              <h3><i class="fas fa-star" style="color: var(--warning); margin-right: 0.5rem;"></i>Average Score by Subject</h3>
+              <div class="chart-container"><canvas id="scoreBarChart"></canvas></div>
+            </div>
+          </div>
+        `;
+
+                renderBarChart(subjects);
+                renderPieChart(completedTopics, pendingTopics);
+                renderLineChart(allTopics);
+                renderScoreBarChart(subjects);
+
+            } catch (error) {
+                content.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3>Error Loading Analytics</h3>
+            <p>${error.message || 'Please try refreshing the page.'}</p>
+            <button class="btn btn-primary btn-sm" onclick="location.reload()">Refresh</button>
+          </div>
+        `;
+            }
+        }
+
+        // Handle PDF export
+        async function handleExport() {
+            if (!cachedStats) {
+                showToast('Please wait for data to load.', 'warning');
+                return;
+            }
+            showToast('Generating PDF report...', 'info');
+            await generatePDFReport(cachedStats, cachedSubjects, cachedTopics);
+        }
+
+        // Chart.js config
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = isDark ? '#94a3b8' : '#64748b';
+        Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+        function getGridColor() {
+            return document.documentElement.getAttribute('data-theme') === 'dark'
+                ? 'rgba(71, 85, 105, 0.5)' : 'rgba(226, 232, 240, 0.5)';
+        }
+
+        function renderBarChart(subjects) {
+            const ctx = document.getElementById('barChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: subjects.map(s => s.name),
+                    datasets: [{
+                        label: 'Completion %',
+                        data: subjects.map(s => s.completionPercent),
+                        backgroundColor: subjects.map((_, i) => {
+                            const colors = [
+                                'rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 158, 11, 0.8)', 'rgba(139, 92, 246, 0.8)',
+                                'rgba(236, 72, 153, 0.8)', 'rgba(6, 182, 212, 0.8)',
+                                'rgba(251, 146, 60, 0.8)', 'rgba(34, 197, 94, 0.8)'
+                            ];
+                            return colors[i % colors.length];
+                        }),
+                        borderRadius: 8, borderSkipped: false, maxBarThickness: 50
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e293b', padding: 12, cornerRadius: 8,
+                            callbacks: { label: (ctx) => `Completion: ${ctx.parsed.y}%` }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: getGridColor() } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderPieChart(completed, pending) {
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending'],
+                    datasets: [{
+                        data: [completed, pending],
+                        backgroundColor: ['rgba(16, 185, 129, 0.85)', 'rgba(226, 232, 240, 0.85)'],
+                        borderWidth: 0, hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '65%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 20, font: { size: 13 } } },
+                        tooltip: { backgroundColor: '#1e293b', padding: 12, cornerRadius: 8 }
+                    }
+                }
+            });
+        }
+
+        function renderLineChart(topics) {
+            const scoredTopics = topics
+                .filter(t => t.score !== null && t.score !== undefined && t.createdAt)
+                .sort((a, b) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+                    return dateA - dateB;
+                });
+
+            const ctx = document.getElementById('lineChart').getContext('2d');
+
+            if (scoredTopics.length === 0) {
+                ctx.canvas.parentElement.innerHTML = `
+                    <div class="empty-state" style="padding: 2rem;">
+                        <p style="color: var(--gray-400); font-size: 0.875rem;">
+                            <i class="fas fa-info-circle"></i> Add scores to your topics to see score trends here.
+                        </p>
+                    </div>`;
+                return;
+            }
+
+            const labels = scoredTopics.map(t => {
+                const date = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Score', data: scoredTopics.map(t => t.score),
+                        borderColor: 'rgba(59, 130, 246, 1)', backgroundColor: gradient,
+                        borderWidth: 2.5, pointRadius: 5, pointBackgroundColor: '#fff',
+                        pointBorderColor: 'rgba(59, 130, 246, 1)', pointBorderWidth: 2,
+                        pointHoverRadius: 7, fill: true, tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e293b', padding: 12, cornerRadius: 8,
+                            callbacks: {
+                                title: (items) => items[0].label,
+                                label: (ctx) => {
+                                    const topic = scoredTopics[ctx.dataIndex];
+                                    return [`Score: ${ctx.parsed.y}`, `Subject: ${topic.subjectName}`, `Topic: ${topic.name}`];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: getGridColor() } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderScoreBarChart(subjects) {
+            const subjectsWithScores = subjects.filter(s => s.avgScore > 0);
+            const ctx = document.getElementById('scoreBarChart').getContext('2d');
+
+            if (subjectsWithScores.length === 0) {
+                ctx.canvas.parentElement.innerHTML = `
+                    <div class="empty-state" style="padding: 2rem;">
+                        <p style="color: var(--gray-400); font-size: 0.875rem;">
+                            <i class="fas fa-info-circle"></i> Add scores to your topics to see average scores by subject.
+                        </p>
+                    </div>`;
+                return;
+            }
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: subjectsWithScores.map(s => s.name),
+                    datasets: [{
+                        label: 'Average Score',
+                        data: subjectsWithScores.map(s => s.avgScore),
+                        backgroundColor: subjectsWithScores.map(s =>
+                            s.avgScore >= 80 ? 'rgba(16,185,129,0.8)' : s.avgScore >= 50 ? 'rgba(245,158,11,0.8)' : 'rgba(239,68,68,0.8)'
+                        ),
+                        borderRadius: 8, borderSkipped: false, maxBarThickness: 50
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e293b', padding: 12, cornerRadius: 8,
+                            callbacks: { label: (ctx) => `Average: ${ctx.parsed.x}/100` }
+                        }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: getGridColor() } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

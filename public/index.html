@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Progress Tracker - Track Your Academic Progress Smartly</title>
+  <meta name="description"
+    content="Track your subjects, monitor topics, and analyze your academic performance with our modern student progress tracker.">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+  <!-- Navigation -->
+  <nav class="landing-nav" id="landing-nav">
+    <div class="container">
+      <a href="/" class="nav-logo">
+        <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+        ProgressTrack
+      </a>
+      <div class="nav-links" id="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it Works</a>
+        <a href="#about">About</a>
+        <a href="/login" class="btn btn-outline btn-sm">Login</a>
+        <a href="/register" class="btn btn-primary btn-sm">Sign Up Free</a>
+      </div>
+      <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <i class="fas fa-sparkles"></i>
+          Built for Students
+        </div>
+        <h1 class="hero-title">
+          Track Your Academic Progress <span>Smartly</span>
+        </h1>
+        <p class="hero-subtitle">
+          Organize your subjects, monitor topic completion, and gain powerful insights into your academic performance —
+          all in one clean, modern dashboard.
+        </p>
+        <div class="hero-actions">
+          <a href="/register" class="btn btn-primary btn-lg">
+            <i class="fas fa-rocket"></i>
+            Get Started — It's Free
+          </a>
+          <a href="#features" class="btn btn-outline btn-lg">
+            Learn More
+          </a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-illustration">
+          <div class="dashboard-preview">
+            <div class="preview-header">
+              <span class="preview-dot"></span>
+              <span class="preview-dot"></span>
+              <span class="preview-dot"></span>
+            </div>
+            <div class="preview-bar"></div>
+            <div class="preview-bar"></div>
+            <div class="preview-bar"></div>
+            <div class="preview-bar"></div>
+            <div class="preview-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="container">
+      <h2 class="section-title">Everything You Need to Excel</h2>
+      <p class="section-subtitle">Powerful tools designed to help you stay on top of your academic journey and achieve
+        your best results.</p>
+
+      <div class="features-grid">
+        <div class="feature-card animate-in">
+          <div class="feature-icon blue">
+            <i class="fas fa-book-open"></i>
+          </div>
+          <h3>Track Subjects</h3>
+          <p>Organize all your subjects in one place. Add, edit, and manage your coursework effortlessly with our
+            intuitive interface.</p>
+        </div>
+
+        <div class="feature-card animate-in">
+          <div class="feature-icon green">
+            <i class="fas fa-list-check"></i>
+          </div>
+          <h3>Monitor Topics</h3>
+          <p>Break down subjects into topics. Track completion status, mark progress, and never lose sight of what needs
+            to be done.</p>
+        </div>
+
+        <div class="feature-card animate-in">
+          <div class="feature-icon orange">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h3>Analyze Performance</h3>
+          <p>Gain insights with beautiful charts and analytics. Visualize your progress trends and identify areas for
+            improvement.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it Works -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-subtitle">Get started in just three simple steps and take control of your academic progress.</p>
+
+      <div class="steps-grid">
+        <div class="step-card animate-in">
+          <div class="step-number">1</div>
+          <h3>Create Your Account</h3>
+          <p>Sign up in seconds with your email or Google account — completely free.</p>
+        </div>
+        <div class="step-card animate-in">
+          <div class="step-number">2</div>
+          <h3>Add Your Subjects</h3>
+          <p>Enter your subjects and break them down into individual topics to track.</p>
+        </div>
+        <div class="step-card animate-in">
+          <div class="step-number">3</div>
+          <h3>Track & Analyze</h3>
+          <p>Mark topics as complete, log scores, and watch your analytics update in real-time.</p>
+        </div>
+        <div class="step-card animate-in">
+          <div class="step-number">4</div>
+          <h3>Achieve Your Goals</h3>
+          <p>Stay motivated with visual progress indicators and performance insights.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section class="features" id="about" style="background: var(--gray-50);">
+    <div class="container text-center">
+      <h2 class="section-title">About ProgressTrack</h2>
+      <p class="section-subtitle" style="max-width: 700px;">
+        ProgressTrack was built with students in mind. We understand the challenges of managing multiple subjects,
+        topics, and deadlines. Our platform provides a clean, distraction-free environment to track your academic
+        journey, analyze your performance, and stay on top of your studies. Whether you're in school, college, or
+        university — ProgressTrack adapts to your needs.
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <a href="/" class="nav-logo">
+            <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+            ProgressTrack
+          </a>
+          <p>Your smart companion for academic progress tracking and performance analytics.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How it Works</a>
+          <a href="#about">About</a>
+        </div>
+        <div class="footer-links">
+          <h4>Account</h4>
+          <a href="/login">Login</a>
+          <a href="/register">Register</a>
+        </div>
+        <div class="footer-links">
+          <h4>Contact</h4>
+          <a href="mailto:contact@progresstrack.app">contact@progresstrack.app</a>
+          <a href="#">Support Center</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 ProgressTrack. All rights reserved. Built for students, by students.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+      const nav = document.getElementById('nav-links');
+      nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
+
+      if (window.innerWidth <= 768) {
+        nav.style.flexDirection = 'column';
+        nav.style.position = 'absolute';
+        nav.style.top = '72px';
+        nav.style.left = '0';
+        nav.style.right = '0';
+        nav.style.background = '#fff';
+        nav.style.padding = '1rem';
+        nav.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+        nav.style.alignItems = 'flex-start';
+        nav.style.gap = '0.75rem';
+      }
+    }
+
+    // Intersection Observer for scroll animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-in').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
+    });
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Close mobile menu
+          if (window.innerWidth <= 768) {
+            document.getElementById('nav-links').style.display = 'none';
+          }
+        }
+      });
+    });
+  </script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSy....",
+      authDomain: "studentprogresstracker-33d56.firebaseapp.com",
+      projectId: "studentprogresstracker-33d56",
+      storageBucket: "studentprogresstracker-33d56.firebasestorage.app",
+      messagingSenderId: "644624515332",
+      appId: "1:644624515332:web:339b0fef640cf629599051"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    console.log("Firebase Connected ✅");
+  </script>
+
+</body>
+
+</html>

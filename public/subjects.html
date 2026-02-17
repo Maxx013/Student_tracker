@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subjects - Student Progress Tracker</title>
+    <meta name="description" content="Manage your subjects and track academic progress.">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="app-layout">
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="/dashboard" class="nav-logo">
+                    <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+                    ProgressTrack
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="sidebar-nav-label">Main Menu</div>
+                <a href="/dashboard" class="sidebar-nav-item">
+                    <i class="fas fa-th-large"></i> Dashboard
+                </a>
+                <a href="/subjects" class="sidebar-nav-item active">
+                    <i class="fas fa-book-open"></i> Subjects
+                </a>
+                <a href="/goals" class="sidebar-nav-item">
+                    <i class="fas fa-bullseye"></i> Goals
+                </a>
+                <a href="/analytics" class="sidebar-nav-item">
+                    <i class="fas fa-chart-bar"></i> Analytics
+                </a>
+                <div class="sidebar-nav-label" style="margin-top: var(--space-lg);">Account</div>
+                <a href="#" class="sidebar-nav-item" onclick="logoutUser()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="sidebar-avatar">US</div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name user-display-name">Loading...</div>
+                        <div class="sidebar-user-email user-display-email">...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="top-navbar">
+                <div class="top-navbar-left">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">Subjects</h1>
+                </div>
+                <div class="top-navbar-right">
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+                        <i class="fas fa-moon theme-toggle-icon"></i>
+                    </button>
+                    <div class="navbar-user">
+                        <i class="fas fa-user-circle" style="font-size:1.375rem; color: var(--primary-500);"></i>
+                        <span class="navbar-user-name user-display-name">Loading...</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="subjects-header">
+                    <div>
+                        <h2
+                            style="font-size: 1.5rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.25rem;">
+                            Your Subjects</h2>
+                        <p style="color: var(--gray-500); font-size: 0.9375rem;">Manage your subjects and track topic
+                            progress.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openModal('add-subject-modal')">
+                        <i class="fas fa-plus"></i> Add Subject
+                    </button>
+                </div>
+
+                <div class="subjects-grid" id="subjects-grid">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Subject Modal -->
+    <div class="modal-overlay" id="add-subject-modal">
+        <div class="modal" style="max-width: 540px;">
+            <div class="modal-header">
+                <h2>Add New Subject</h2>
+                <button class="modal-close" onclick="closeModal('add-subject-modal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-subject-form" onsubmit="handleAddSubject(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="subject-name">Subject Name</label>
+                        <input type="text" class="form-control" id="subject-name"
+                            placeholder="e.g., Computer Networks, Data Structures" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="subject-desc">Description (Optional)</label>
+                        <input type="text" class="form-control" id="subject-desc"
+                            placeholder="Brief description of the subject">
+                    </div>
+
+                    <!-- Auto Generate Toggle -->
+                    <div class="toggle-group">
+                        <label for="auto-gen-toggle">Auto Generate Topics</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="auto-gen-toggle" checked>
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </div>
+
+                    <!-- Upload Section (shown when no template found) -->
+                    <div class="upload-section" id="upload-section">
+                        <p style="font-size:0.8125rem; color:var(--gray-500); margin-bottom: var(--space-sm);">
+                            <i class="fas fa-info-circle" style="color:var(--primary-500);"></i>
+                            No predefined template found. Upload a syllabus PDF to auto-generate topics.
+                        </p>
+                        <div class="upload-dropzone" id="upload-dropzone">
+                            <div class="upload-dropzone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                            <h4>Drop PDF here or click to browse</h4>
+                            <p>Supports .pdf files up to 10MB</p>
+                            <input type="file" id="syllabus-file" accept=".pdf">
+                        </div>
+                        <div class="upload-filename" id="upload-filename">
+                            <i class="fas fa-file-pdf"></i> <span id="upload-filename-text"></span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" onclick="closeModal('add-subject-modal')">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="add-subject-btn"
+                    onclick="document.getElementById('add-subject-form').requestSubmit()">
+                    <i class="fas fa-plus"></i> Add Subject
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Subject Modal -->
+    <div class="modal-overlay" id="edit-subject-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Edit Subject</h2>
+                <button class="modal-close" onclick="closeModal('edit-subject-modal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-subject-form" onsubmit="handleEditSubject(event)">
+                    <input type="hidden" id="edit-subject-id">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-subject-name">Subject Name</label>
+                        <input type="text" class="form-control" id="edit-subject-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-subject-desc">Description</label>
+                        <input type="text" class="form-control" id="edit-subject-desc">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" onclick="closeModal('edit-subject-modal')">Cancel</button>
+                <button class="btn btn-primary btn-sm"
+                    onclick="document.getElementById('edit-subject-form').requestSubmit()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topic Preview Modal -->
+    <div class="modal-overlay" id="topic-preview-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-list-check" style="color:var(--primary-500);margin-right:0.5rem;"></i>Review Topics
+                </h2>
+                <button class="modal-close" onclick="closeModal('topic-preview-modal')">×</button>
+            </div>
+            <div class="modal-body" id="topic-preview-body">
+                <!-- Populated dynamically by renderTopicPreview() -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" onclick="closeModal('topic-preview-modal')">Skip</button>
+                <button class="btn btn-primary btn-sm" id="save-topics-btn" onclick="handleSavePreviewTopics()">
+                    <i class="fas fa-check"></i> Save Topics
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processing-overlay">
+        <div class="processing-card">
+            <div class="processing-spinner"></div>
+            <h3 id="processing-title">Processing...</h3>
+            <p id="processing-message">Extracting topics from your syllabus</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="/js/firebase-config.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/firestore.js"></script>
+    <script src="/js/topic-generator.js"></script>
+
+    <script>
+        let subjectsUnsubscribe = null;
+        let currentNewSubjectId = null; // Tracks the subject being created for topic preview
+        let currentPreviewSource = 'template'; // Tracks where topics came from
+        let selectedSyllabusFile = null; // Tracks uploaded PDF file
+
+        requireAuth().then(async (user) => {
+            updateUserUI(user);
+            loadSubjects();
+            seedFirestoreTemplates(); // Seed templates once
+
+            // Setup file upload listeners
+            setupFileUpload();
+        });
+
+        // ---- File Upload Setup ----
+        function setupFileUpload() {
+            const dropzone = document.getElementById('upload-dropzone');
+            const fileInput = document.getElementById('syllabus-file');
+
+            // Drag & drop events
+            ['dragenter', 'dragover'].forEach(event => {
+                dropzone.addEventListener(event, (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add('dragover');
+                });
+            });
+            ['dragleave', 'drop'].forEach(event => {
+                dropzone.addEventListener(event, (e) => {
+                    e.preventDefault();
+                    dropzone.classList.remove('dragover');
+                });
+            });
+            dropzone.addEventListener('drop', (e) => {
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'application/pdf') {
+                    handleFileSelect(file);
+                } else {
+                    showToast('Please upload a PDF file', 'warning');
+                }
+            });
+
+            // Click to browse
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) handleFileSelect(e.target.files[0]);
+            });
+        }
+
+        function handleFileSelect(file) {
+            selectedSyllabusFile = file;
+            document.getElementById('upload-filename-text').textContent = file.name;
+            document.getElementById('upload-filename').classList.add('visible');
+        }
+
+        // ---- Subject Name Change → live template check ----
+        document.getElementById('subject-name').addEventListener('input', function () {
+            const name = this.value.trim();
+            const uploadSection = document.getElementById('upload-section');
+            const autoGenToggle = document.getElementById('auto-gen-toggle');
+
+            if (!autoGenToggle.checked || name.length < 2) {
+                uploadSection.classList.remove('visible');
+                return;
+            }
+
+            if (checkTemplateExists(name)) {
+                uploadSection.classList.remove('visible');
+            } else {
+                uploadSection.classList.add('visible');
+            }
+        });
+
+        // Toggle auto-gen → show/hide upload section
+        document.getElementById('auto-gen-toggle').addEventListener('change', function () {
+            const uploadSection = document.getElementById('upload-section');
+            if (!this.checked) {
+                uploadSection.classList.remove('visible');
+            } else {
+                // Trigger name check
+                document.getElementById('subject-name').dispatchEvent(new Event('input'));
+            }
+        });
+
+        // ---- Load Subjects (existing) ----
+        function loadSubjects() {
+            const grid = document.getElementById('subjects-grid');
+
+            subjectsUnsubscribe = getSubjects(async (subjects) => {
+                if (subjects.length === 0) {
+                    grid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+              <div class="empty-state-icon"><i class="fas fa-book-open"></i></div>
+              <h3>No Subjects Yet</h3>
+              <p>Add your first subject to start tracking progress.</p>
+              <button class="btn btn-primary btn-sm" onclick="openModal('add-subject-modal')">
+                <i class="fas fa-plus"></i> Add Subject
+              </button>
+            </div>
+          `;
+                    return;
+                }
+
+                const enrichedSubjects = await Promise.all(subjects.map(async (subject) => {
+                    return new Promise((resolve) => {
+                        const unsubTopics = getTopics(subject.id, (topics) => {
+                            unsubTopics();
+                            const total = topics.length;
+                            const completed = topics.filter(t => t.completed).length;
+                            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                            resolve({ ...subject, totalTopics: total, completedTopics: completed, completionPercent: percent });
+                        });
+                    });
+                }));
+
+                grid.innerHTML = enrichedSubjects.map((subject, index) => `
+          <div class="subject-card animate-in" style="animation-delay: ${index * 0.1}s">
+            <div class="subject-card-header">
+              <div class="subject-card-icon"><i class="fas fa-book"></i></div>
+              <div class="subject-card-actions">
+                <button class="btn-icon" onclick="openEditSubject('${subject.id}', '${escapeHtml(subject.name)}', '${escapeHtml(subject.description || '')}')" title="Edit">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button class="btn-icon" onclick="handleDeleteSubject('${subject.id}', '${escapeHtml(subject.name)}')" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="subject-card-body">
+              <h3>${subject.name}</h3>
+              ${subject.description ? `<p style="font-size:0.8125rem;color:var(--gray-500);margin-bottom:0.5rem;">${subject.description}</p>` : ''}
+              <div class="subject-meta">
+                <span><i class="fas fa-list" style="margin-right:0.25rem;"></i>${subject.totalTopics} Topics</span>
+                <span><i class="fas fa-check-circle" style="margin-right:0.25rem;color:var(--success);"></i>${subject.completedTopics} Done</span>
+              </div>
+              <div class="subject-progress-bar">
+                <div class="subject-progress-info">
+                  <span>Progress</span>
+                  <span>${subject.completionPercent}%</span>
+                </div>
+                <div class="progress-bar-wrapper" style="height: 8px;">
+                  <div class="progress-bar-fill" style="width: ${subject.completionPercent}%"></div>
+                </div>
+              </div>
+            </div>
+            <div class="subject-card-footer">
+              <a href="/topics/${subject.id}" class="btn btn-outline btn-sm" style="width:100%;">
+                <i class="fas fa-eye"></i> View Details
+              </a>
+            </div>
+          </div>
+        `).join('');
+            });
+        }
+
+        // ---- Handle Add Subject (HYBRID FLOW) ----
+        async function handleAddSubject(e) {
+            e.preventDefault();
+            const name = document.getElementById('subject-name').value.trim();
+            const desc = document.getElementById('subject-desc').value.trim();
+            const autoGen = document.getElementById('auto-gen-toggle').checked;
+
+            if (!name) {
+                showToast('Please enter a subject name', 'warning');
+                return;
+            }
+
+            try {
+                // Step 1: Create the subject
+                const subjectId = await addSubject(name, desc);
+                currentNewSubjectId = subjectId;
+                closeModal('add-subject-modal');
+
+                if (!autoGen) {
+                    showToast(`"${name}" added successfully!`, 'success');
+                    resetAddForm();
+                    return;
+                }
+
+                // Step 2: Hybrid topic generation
+                showProcessing('Checking templates...', 'Looking for predefined topics');
+
+                const result = await hybridTopicGeneration(name);
+
+                if (result.source === 'template' && result.topics.length > 0) {
+                    // Template found → show preview
+                    hideProcessing();
+                    currentPreviewSource = 'template';
+                    renderTopicPreview('topic-preview-body', result.topics, { source: 'template', subjectId });
+                    openModal('topic-preview-modal');
+                    showToast(`Found ${result.topics.length} template topics for "${name}"!`, 'success');
+                } else if (selectedSyllabusFile) {
+                    // No template, but PDF uploaded → parse it
+                    showProcessing('Parsing PDF...', `Extracting topics from ${selectedSyllabusFile.name}`);
+
+                    try {
+                        const pdfResult = await requestPDFParse(selectedSyllabusFile);
+
+                        if (pdfResult.topics && pdfResult.topics.length > 0) {
+                            // Try AI extraction if available
+                            let finalTopics = pdfResult.topics;
+                            let finalSource = 'pdf';
+
+                            try {
+                                const aiAvailable = await checkAIAvailable();
+                                if (aiAvailable && pdfResult.rawText) {
+                                    showProcessing('AI Processing...', 'Enhancing topic extraction with AI');
+                                    const aiResult = await requestAIExtraction(pdfResult.rawText);
+                                    if (aiResult.topics && aiResult.topics.length > 0) {
+                                        finalTopics = aiResult.topics;
+                                        finalSource = 'ai';
+                                    }
+                                }
+                            } catch (aiErr) {
+                                console.log('AI extraction skipped:', aiErr.message);
+                            }
+
+                            hideProcessing();
+                            currentPreviewSource = finalSource;
+                            renderTopicPreview('topic-preview-body', finalTopics, { source: finalSource, subjectId });
+                            openModal('topic-preview-modal');
+                            showToast(`Extracted ${finalTopics.length} topics from PDF!`, 'success');
+                        } else {
+                            hideProcessing();
+                            showToast(`"${name}" added. No topics could be extracted from the PDF.`, 'info');
+                        }
+                    } catch (pdfErr) {
+                        hideProcessing();
+                        showToast('PDF parsing failed: ' + pdfErr.message, 'error');
+                    }
+                } else {
+                    // No template, no PDF
+                    hideProcessing();
+                    showToast(`"${name}" added. No template found — you can add topics manually or upload a syllabus later.`, 'info');
+                }
+
+                resetAddForm();
+            } catch (error) {
+                hideProcessing();
+                showToast('Error adding subject: ' + error.message, 'error');
+            }
+        }
+
+        // ---- Save Preview Topics ----
+        async function handleSavePreviewTopics() {
+            if (!currentNewSubjectId) {
+                showToast('No subject selected', 'error');
+                return;
+            }
+
+            const topics = getPreviewTopics();
+            if (topics.length === 0) {
+                showToast('No topics to save', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('save-topics-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const count = await autoGenerateTopics(currentNewSubjectId, topics);
+                closeModal('topic-preview-modal');
+                showToast(`${count} topics auto-generated successfully! ✨`, 'success');
+            } catch (error) {
+                showToast('Failed to save topics: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Save Topics';
+                currentNewSubjectId = null;
+            }
+        }
+
+        // ---- Processing Overlay Controls ----
+        function showProcessing(title, message) {
+            document.getElementById('processing-title').textContent = title || 'Processing...';
+            document.getElementById('processing-message').textContent = message || '';
+            document.getElementById('processing-overlay').classList.add('active');
+        }
+        function hideProcessing() {
+            document.getElementById('processing-overlay').classList.remove('active');
+        }
+
+        // ---- Reset Add Form ----
+        function resetAddForm() {
+            document.getElementById('add-subject-form').reset();
+            document.getElementById('auto-gen-toggle').checked = true;
+            document.getElementById('upload-section').classList.remove('visible');
+            document.getElementById('upload-filename').classList.remove('visible');
+            selectedSyllabusFile = null;
+        }
+
+        // ---- Edit / Delete (existing) ----
+        function openEditSubject(id, name, desc) {
+            document.getElementById('edit-subject-id').value = id;
+            document.getElementById('edit-subject-name').value = name;
+            document.getElementById('edit-subject-desc').value = desc;
+            openModal('edit-subject-modal');
+        }
+
+        async function handleEditSubject(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-subject-id').value;
+            const name = document.getElementById('edit-subject-name').value.trim();
+            const desc = document.getElementById('edit-subject-desc').value.trim();
+
+            if (!name) {
+                showToast('Subject name is required', 'warning');
+                return;
+            }
+
+            try {
+                await updateSubject(id, { name, description: desc });
+                showToast('Subject updated!', 'success');
+                closeModal('edit-subject-modal');
+            } catch (error) {
+                showToast('Error updating subject: ' + error.message, 'error');
+            }
+        }
+
+        async function handleDeleteSubject(id, name) {
+            const confirmed = await confirmAction(`Are you sure you want to delete "${name}" and all its topics? This cannot be undone.`);
+            if (!confirmed) return;
+
+            try {
+                await deleteSubject(id);
+                showToast(`"${name}" deleted`, 'success');
+            } catch (error) {
+                showToast('Error deleting subject: ' + error.message, 'error');
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML.replace(/'/g, "\\'");
+        }
+    </script>
+</body>
+
+</html>

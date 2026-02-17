@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goals - Student Progress Tracker</title>
+    <meta name="description" content="Set and track your weekly study goals with deadlines.">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="app-layout">
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="/dashboard" class="nav-logo">
+                    <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+                    ProgressTrack
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="sidebar-nav-label">Main Menu</div>
+                <a href="/dashboard" class="sidebar-nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+                <a href="/subjects" class="sidebar-nav-item"><i class="fas fa-book-open"></i> Subjects</a>
+                <a href="/goals" class="sidebar-nav-item active"><i class="fas fa-bullseye"></i> Goals</a>
+                <a href="/analytics" class="sidebar-nav-item"><i class="fas fa-chart-bar"></i> Analytics</a>
+                <div class="sidebar-nav-label" style="margin-top: var(--space-lg);">Account</div>
+                <a href="#" class="sidebar-nav-item" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i>
+                    Logout</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="sidebar-avatar">US</div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name user-display-name">Loading...</div>
+                        <div class="sidebar-user-email user-display-email">...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="top-navbar">
+                <div class="top-navbar-left">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                    <h1 class="page-title">Study Goals</h1>
+                </div>
+                <div class="top-navbar-right">
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+                        <i class="fas fa-moon theme-toggle-icon"></i>
+                    </button>
+                    <div class="navbar-user">
+                        <i class="fas fa-user-circle" style="font-size:1.375rem; color: var(--primary-500);"></i>
+                        <span class="navbar-user-name user-display-name">Loading...</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content" id="goals-content">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="/js/firebase-config.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/firestore.js"></script>
+    <script src="/js/goals.js"></script>
+
+    <script>
+        requireAuth().then(async (user) => {
+            updateUserUI(user);
+            loadGoalsPage();
+        });
+
+        function loadGoalsPage() {
+            const content = document.getElementById('goals-content');
+
+            content.innerHTML = `
+                <!-- Add Goal Form -->
+                <div class="add-goal-section animate-in">
+                    <h3 style="margin-bottom: var(--space-md);"><i class="fas fa-plus-circle" style="color: var(--primary-500); margin-right: 0.5rem;"></i>Add New Goal</h3>
+                    <form class="goal-form" onsubmit="handleAddGoal(event)">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Goal Title</label>
+                            <input type="text" class="form-control" id="goalTitle" placeholder="e.g. Complete Data Structures" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Target Topics</label>
+                            <input type="number" class="form-control" id="goalTarget" placeholder="e.g. 10" min="1" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Deadline</label>
+                            <input type="date" class="form-control" id="goalDeadline" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add</button>
+                    </form>
+                </div>
+
+                <!-- Goals Grid -->
+                <div id="goals-list" class="goals-page-grid">
+                    <div class="loading-spinner"><div class="spinner"></div></div>
+                </div>
+            `;
+
+            // Set min date to today
+            document.getElementById('goalDeadline').min = new Date().toISOString().split('T')[0];
+
+            // Listen for goals
+            getGoals((goals) => {
+                renderGoalsList(goals);
+            });
+        }
+
+        function renderGoalsList(goals) {
+            const container = document.getElementById('goals-list');
+
+            if (goals.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <div class="empty-state-icon"><i class="fas fa-bullseye"></i></div>
+                        <h3>No Goals Yet</h3>
+                        <p>Set your first study goal above to start tracking your progress.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = goals.map((goal, i) => {
+                const pct = getGoalCompletionPercent(goal);
+                const countdown = getCountdownString(goal.deadline);
+                const isExpired = countdown === 'Expired';
+                const isComplete = pct >= 100;
+
+                return `
+                    <div class="goal-card" style="animation-delay: ${i * 0.1}s">
+                        <div class="goal-card-header">
+                            <span class="goal-card-title">${goal.title}</span>
+                            <span class="goal-card-countdown ${isExpired ? 'expired' : ''}">${isComplete ? '✓ Done' : countdown}</span>
+                        </div>
+                        <div class="goal-card-progress">
+                            <div class="progress-bar-wrapper" style="height:10px;">
+                                <div class="progress-bar-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%"></div>
+                            </div>
+                            <div class="goal-card-stats">
+                                <span>${goal.completedCount || 0} / ${goal.targetCount} topics</span>
+                                <span style="font-weight:700; color: ${isComplete ? 'var(--success)' : 'var(--primary-500)'}">${pct}%</span>
+                            </div>
+                        </div>
+                        <div class="goal-card-actions">
+                            <button class="btn btn-outline btn-sm" onclick="handleUpdateProgress('${goal.id}', ${goal.completedCount || 0}, ${goal.targetCount})">
+                                <i class="fas fa-plus"></i> Update Progress
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="handleDeleteGoal('${goal.id}', '${goal.title}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function handleAddGoal(e) {
+            e.preventDefault();
+            const title = document.getElementById('goalTitle').value.trim();
+            const target = document.getElementById('goalTarget').value;
+            const deadline = document.getElementById('goalDeadline').value;
+
+            if (!title || !target || !deadline) return;
+
+            try {
+                await addGoal(title, target, deadline);
+                showToast('Goal added successfully!', 'success');
+                document.getElementById('goalTitle').value = '';
+                document.getElementById('goalTarget').value = '';
+                document.getElementById('goalDeadline').value = '';
+            } catch (err) {
+                showToast('Error adding goal: ' + err.message, 'error');
+            }
+        }
+
+        async function handleUpdateProgress(goalId, current, max) {
+            const newVal = prompt(`Update completed topics (current: ${current}/${max}):`, current + 1);
+            if (newVal === null) return;
+            const val = parseInt(newVal);
+            if (isNaN(val) || val < 0) {
+                showToast('Please enter a valid number.', 'warning');
+                return;
+            }
+            try {
+                await updateGoalProgress(goalId, Math.min(val, max));
+                showToast('Progress updated!', 'success');
+            } catch (err) {
+                showToast('Error updating progress.', 'error');
+            }
+        }
+
+        async function handleDeleteGoal(goalId, title) {
+            const ok = await confirmAction(`Delete goal "${title}"?`);
+            if (!ok) return;
+            try {
+                await deleteGoal(goalId);
+                showToast('Goal deleted.', 'success');
+            } catch (err) {
+                showToast('Error deleting goal.', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

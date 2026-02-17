@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topics - Student Progress Tracker</title>
+    <meta name="description" content="Track topics and completion status for your subjects.">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="app-layout">
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="/dashboard" class="nav-logo">
+                    <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+                    ProgressTrack
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="sidebar-nav-label">Main Menu</div>
+                <a href="/dashboard" class="sidebar-nav-item">
+                    <i class="fas fa-th-large"></i> Dashboard
+                </a>
+                <a href="/subjects" class="sidebar-nav-item active">
+                    <i class="fas fa-book-open"></i> Subjects
+                </a>
+                <a href="/goals" class="sidebar-nav-item">
+                    <i class="fas fa-bullseye"></i> Goals
+                </a>
+                <a href="/analytics" class="sidebar-nav-item">
+                    <i class="fas fa-chart-bar"></i> Analytics
+                </a>
+                <div class="sidebar-nav-label" style="margin-top: var(--space-lg);">Account</div>
+                <a href="#" class="sidebar-nav-item" onclick="logoutUser()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="sidebar-avatar">US</div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name user-display-name">Loading...</div>
+                        <div class="sidebar-user-email user-display-email">...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="top-navbar">
+                <div class="top-navbar-left">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">Topic Tracking</h1>
+                </div>
+                <div class="top-navbar-right">
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+                        <i class="fas fa-moon theme-toggle-icon"></i>
+                    </button>
+                    <div class="navbar-user">
+                        <i class="fas fa-user-circle" style="font-size:1.375rem; color: var(--primary-500);"></i>
+                        <span class="navbar-user-name user-display-name">Loading...</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <!-- Subject Info Header -->
+                <div class="topics-header">
+                    <div class="topics-header-info">
+                        <a href="/subjects"
+                            style="font-size: 0.8125rem; color: var(--primary-600); font-weight: 500; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem;">
+                            <i class="fas fa-arrow-left"></i> Back to Subjects
+                        </a>
+                        <h2 id="subject-title">Loading...</h2>
+                        <p id="subject-stats">Loading topic data...</p>
+                    </div>
+                    <div style="display: flex; gap: var(--space-sm); align-items: center;">
+                        <button class="btn-upload-syllabus" onclick="openModal('syllabus-upload-modal')">
+                            <i class="fas fa-file-pdf"></i> Upload Syllabus
+                        </button>
+                        <button class="btn btn-primary" onclick="openModal('add-topic-modal')">
+                            <i class="fas fa-plus"></i> Add Topic
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress Overview -->
+                <div class="progress-section animate-in" style="margin-bottom: var(--space-xl);">
+                    <h3><i class="fas fa-tasks" style="color: var(--primary-500); margin-right: 0.5rem;"></i>Subject
+                        Progress</h3>
+                    <div class="progress-info">
+                        <span id="progress-text">0 of 0 topics completed</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Topics List -->
+                <div class="topics-list" id="topics-list">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Topic Modal -->
+    <div class="modal-overlay" id="add-topic-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Add New Topic</h2>
+                <button class="modal-close" onclick="closeModal('add-topic-modal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-topic-form" onsubmit="handleAddTopic(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="topic-unit">Unit Number</label>
+                        <select class="form-control" id="topic-unit">
+                            <option value="1">Unit 1</option>
+                            <option value="2">Unit 2</option>
+                            <option value="3">Unit 3</option>
+                            <option value="4">Unit 4</option>
+                            <option value="5">Unit 5</option>
+                            <option value="6">Unit 6</option>
+                            <option value="7">Unit 7</option>
+                            <option value="8">Unit 8</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="topic-name">Topic Name</label>
+                        <input type="text" class="form-control" id="topic-name" placeholder="e.g., Introduction to OS"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="topic-score">Score (Optional, 0-100)</label>
+                        <input type="number" class="form-control" id="topic-score" placeholder="Enter score" min="0"
+                            max="100">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" onclick="closeModal('add-topic-modal')">Cancel</button>
+                <button class="btn btn-primary btn-sm"
+                    onclick="document.getElementById('add-topic-form').requestSubmit()">
+                    <i class="fas fa-plus"></i> Add Topic
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Topic Modal -->
+    <div class="modal-overlay" id="edit-topic-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Edit Topic</h2>
+                <button class="modal-close" onclick="closeModal('edit-topic-modal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-topic-form" onsubmit="handleEditTopic(event)">
+                    <input type="hidden" id="edit-topic-id">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-topic-unit">Unit Number</label>
+                        <select class="form-control" id="edit-topic-unit">
+                            <option value="1">Unit 1</option>
+                            <option value="2">Unit 2</option>
+                            <option value="3">Unit 3</option>
+                            <option value="4">Unit 4</option>
+                            <option value="5">Unit 5</option>
+                            <option value="6">Unit 6</option>
+                            <option value="7">Unit 7</option>
+                            <option value="8">Unit 8</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-topic-name">Topic Name</label>
+                        <input type="text" class="form-control" id="edit-topic-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-topic-score">Score (0-100)</label>
+                        <input type="number" class="form-control" id="edit-topic-score" min="0" max="100">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" onclick="closeModal('edit-topic-modal')">Cancel</button>
+                <button class="btn btn-primary btn-sm"
+                    onclick="document.getElementById('edit-topic-form').requestSubmit()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Syllabus Upload Modal -->
+    <div class="modal-overlay" id="syllabus-upload-modal">
+        <div class="modal" style="max-width: 540px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-pdf" style="color:#8b5cf6;margin-right:0.5rem;"></i>Upload Syllabus</h2>
+                <button class="modal-close" onclick="closeModal('syllabus-upload-modal')">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.8125rem;color:var(--gray-500);margin-bottom:var(--space-md);">
+                    Upload a syllabus PDF to auto-generate topic entries for this subject.
+                </p>
+                <div class="upload-dropzone" id="topics-upload-dropzone">
+                    <div class="upload-dropzone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                    <h4>Drop PDF here or click to browse</h4>
+                    <p>Supports .pdf files up to 10MB</p>
+                    <input type="file" id="topics-syllabus-file" accept=".pdf">
+                </div>
+                <div class="upload-filename" id="topics-upload-filename">
+                    <i class="fas fa-file-pdf"></i> <span id="topics-upload-filename-text"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" onclick="closeModal('syllabus-upload-modal')">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="parse-syllabus-btn" onclick="handleTopicsSyllabusUpload()">
+                    <i class="fas fa-magic"></i> Extract Topics
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topic Preview Modal (topics page) -->
+    <div class="modal-overlay" id="topics-preview-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-list-check" style="color:var(--primary-500);margin-right:0.5rem;"></i>Review Topics
+                </h2>
+                <button class="modal-close" onclick="closeModal('topics-preview-modal')">×</button>
+            </div>
+            <div class="modal-body" id="topics-preview-body"></div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" onclick="closeModal('topics-preview-modal')">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="topics-save-btn" onclick="handleTopicsSavePreview()">
+                    <i class="fas fa-check"></i> Save Topics
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topic Notes Modal -->
+    <div class="modal-overlay" id="topic-notes-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-book-open" style="color:var(--success);margin-right:0.5rem;"></i>Topic Notes</h2>
+                <button class="modal-close" onclick="closeModal('topic-notes-modal')">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="notes-topic-id">
+                <div id="notes-topic-title"
+                    style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md);color:var(--gray-800);"></div>
+                <div class="form-group">
+                    <label class="form-label">Notes Content</label>
+                    <textarea class="unit-notes-textarea" id="topic-notes-content" rows="8"
+                        placeholder="Write your notes for this topic here..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">External Link (Optional)</label>
+                    <input type="url" class="form-control" id="topic-notes-url"
+                        placeholder="e.g., https://drive.google.com/file/...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" onclick="closeModal('topic-notes-modal')">Cancel</button>
+                <button class="btn btn-primary btn-sm" onclick="handleSaveTopicNotes()">
+                    <i class="fas fa-save"></i> Save Notes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processing-overlay">
+        <div class="processing-card">
+            <div class="processing-spinner"></div>
+            <h3 id="processing-title">Processing...</h3>
+            <p id="processing-message">Extracting topics from your syllabus</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="/js/firebase-config.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/firestore.js"></script>
+    <script src="/js/progress.js"></script>
+    <script src="/js/topic-generator.js"></script>
+
+    <script>
+        // Get subject ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const subjectId = pathParts[pathParts.length - 1];
+
+        if (!subjectId) {
+            window.location.href = '/subjects';
+        }
+
+        let topicsUnsubscribe = null;
+        let currentSubjectName = '';
+        let currentAllTopics = [];
+
+        requireAuth().then(async (user) => {
+            updateUserUI(user);
+
+            // Load subject info
+            const subject = await getSubject(subjectId);
+            if (!subject) {
+                showToast('Subject not found', 'error');
+                window.location.href = '/subjects';
+                return;
+            }
+
+            currentSubjectName = subject.name;
+            document.getElementById('subject-title').textContent = subject.name;
+            document.title = `${subject.name} - Topics | Student Progress Tracker`;
+
+            // Load topics with real-time updates
+            loadTopics();
+        });
+
+        function loadTopics() {
+            const list = document.getElementById('topics-list');
+
+            topicsUnsubscribe = getTopics(subjectId, (topics) => {
+                currentAllTopics = topics;
+                const total = topics.length;
+                const completed = topics.filter(t => t.completed).length;
+                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                // Update overall stats
+                document.getElementById('subject-stats').textContent = `${total} topics · ${completed} completed · ${percent}% done`;
+                document.getElementById('progress-text').textContent = `${completed} of ${total} topics completed`;
+                document.getElementById('progress-percent').textContent = `${percent}%`;
+                document.getElementById('progress-fill').style.width = `${percent}%`;
+
+                if (topics.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                          <div class="empty-state-icon"><i class="fas fa-list-check"></i></div>
+                          <h3>No Topics Yet</h3>
+                          <p>Add your first topic to start tracking completion.</p>
+                          <button class="btn btn-primary btn-sm" onclick="openModal('add-topic-modal')">
+                            <i class="fas fa-plus"></i> Add Topic
+                          </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Group topics by unit
+                const unitMap = {};
+                topics.forEach(topic => {
+                    const unit = topic.unit || 1;
+                    if (!unitMap[unit]) unitMap[unit] = [];
+                    unitMap[unit].push(topic);
+                });
+
+                // Sort topics within each unit by topicOrder, then createdAt
+                Object.values(unitMap).forEach(arr => {
+                    arr.sort((a, b) => (a.topicOrder || 999) - (b.topicOrder || 999));
+                });
+
+                const sortedUnits = Object.keys(unitMap).sort((a, b) => parseInt(a) - parseInt(b));
+
+                list.innerHTML = sortedUnits.map(unitNum => {
+                    const unitTopics = unitMap[unitNum];
+                    const unitTotal = unitTopics.length;
+                    const unitCompleted = unitTopics.filter(t => t.completed).length;
+                    const unitPercent = unitTotal > 0 ? Math.round((unitCompleted / unitTotal) * 100) : 0;
+                    const isUnitComplete = unitPercent === 100;
+
+                    const topicsHtml = unitTopics.map((topic, index) => {
+                        const topicNum = `${index + 1}.`;
+                        const notesBtn = topic.completed
+                            ? `<button class="btn-notes-unlocked" onclick="event.stopPropagation(); openTopicNotes('${topic.id}', '${escapeHtml(topic.name)}')" title="View Notes">
+                                <i class="fas fa-book-open"></i> View Notes
+                               </button>`
+                            : `<span class="btn-notes-locked" title="Complete this topic to unlock notes">
+                                <i class="fas fa-lock"></i> Notes Locked
+                               </span>`;
+
+                        return `
+                        <div class="topic-item animate-in ${topic.completed ? 'topic-completed' : ''}" style="animation-delay: ${index * 0.05}s">
+                            <div class="topic-number">${topicNum}</div>
+                            <div class="topic-checkbox">
+                              <input type="checkbox" ${topic.completed ? 'checked' : ''} 
+                                onchange="handleToggleTopic('${topic.id}', this.checked, '${escapeHtml(topic.name)}', ${topic.unit || 1})"
+                                title="${topic.completed ? 'Mark as pending' : 'Mark as completed'}">
+                            </div>
+                            <div class="topic-info ${topic.completed ? 'completed' : ''}">
+                              <h4>${topic.name}</h4>
+                              <p>
+                                ${topic.score !== null && topic.score !== undefined ? `Score: ${topic.score}/100 · ` : ''}
+                                ${topic.completed ? `Completed ${formatDate(topic.completedAt)}` : 'Pending'}
+                              </p>
+                            </div>
+                            ${notesBtn}
+                            ${topic.score !== null && topic.score !== undefined ? `
+                              <span class="badge ${topic.score >= 80 ? 'badge-success' : topic.score >= 50 ? 'badge-warning' : 'badge-danger'}">
+                                ${topic.score}%
+                              </span>
+                            ` : ''}
+                            <div class="topic-actions">
+                              <button class="btn-icon" style="background:var(--gray-50);color:var(--gray-500);width:30px;height:30px;font-size:0.8rem;" 
+                                onclick="openEditTopic('${topic.id}', '${escapeHtml(topic.name)}', ${topic.score}, ${topic.unit || 1})" title="Edit">
+                                <i class="fas fa-pen"></i>
+                              </button>
+                              <button class="btn-icon" style="background:var(--gray-50);color:var(--gray-500);width:30px;height:30px;font-size:0.8rem;" 
+                                onclick="handleDeleteTopic('${topic.id}', '${escapeHtml(topic.name)}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                              </button>
+                            </div>
+                        </div>
+                    `}).join('');
+
+                    // Unit completion celebration banner
+                    const celebrationHtml = isUnitComplete ? `
+                        <div class="unit-completed-banner animate-in">
+                            <div class="unit-completed-icon">🎉</div>
+                            <div class="unit-completed-text">
+                                <strong>Unit ${unitNum} Completed!</strong>
+                                <p>All ${unitTotal} topics done. Amazing work!</p>
+                            </div>
+                            <button class="btn-download-notes" onclick="downloadUnitNotes(${unitNum})">
+                                <i class="fas fa-download"></i> Download Unit Notes
+                            </button>
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="unit-section animate-in ${isUnitComplete ? 'unit-done' : ''}" id="unit-section-${unitNum}">
+                            <div class="unit-header" onclick="toggleUnit(${unitNum})">
+                                <div class="unit-header-left">
+                                    <div class="unit-badge ${isUnitComplete ? 'unit-badge-complete' : ''}">U${unitNum}</div>
+                                    <div class="unit-title-info">
+                                        <h3>Unit ${unitNum} ${isUnitComplete ? '<i class="fas fa-check-circle" style="color:var(--success);font-size:0.85rem;margin-left:0.25rem;"></i>' : ''}</h3>
+                                        <p>${unitTotal} topics · ${unitCompleted} completed</p>
+                                    </div>
+                                </div>
+                                <div class="unit-header-right">
+                                    <span class="badge ${isUnitComplete ? 'badge-success' : unitPercent >= 50 ? 'badge-warning' : 'badge-primary'}">${unitPercent}%</span>
+                                    <div class="unit-progress-mini">
+                                        <div class="unit-progress-mini-fill" style="width: ${unitPercent}%"></div>
+                                    </div>
+                                    <i class="fas fa-chevron-down unit-toggle-icon"></i>
+                                </div>
+                            </div>
+                            <div class="unit-body">
+                                ${celebrationHtml}
+                                <div class="unit-topics-list">
+                                    ${topicsHtml}
+                                </div>
+                                <div class="unit-actions-bar">
+                                    <button class="btn-notes-toggle" onclick="event.stopPropagation(); toggleNotes(${unitNum})" id="notes-toggle-${unitNum}">
+                                        <i class="fas fa-sticky-note"></i> Unit Notes
+                                    </button>
+                                </div>
+                                <div class="unit-notes-panel" id="notes-panel-${unitNum}">
+                                    <div class="unit-notes-label">
+                                        <i class="fas fa-pencil-alt"></i> Unit ${unitNum} Notes
+                                    </div>
+                                    <textarea class="unit-notes-textarea" id="notes-textarea-${unitNum}"
+                                        placeholder="Write your notes for Unit ${unitNum} here..."></textarea>
+                                    <div class="unit-notes-footer">
+                                        <button class="btn-save-notes" onclick="handleSaveNotes(${unitNum})">
+                                            <i class="fas fa-save"></i> Save Notes
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+
+        // Toggle unit collapse/expand
+        function toggleUnit(unitNum) {
+            const section = document.getElementById(`unit-section-${unitNum}`);
+            if (section) section.classList.toggle('collapsed');
+        }
+
+        // Toggle unit notes panel
+        async function toggleNotes(unitNum) {
+            const panel = document.getElementById(`notes-panel-${unitNum}`);
+            const toggleBtn = document.getElementById(`notes-toggle-${unitNum}`);
+            if (!panel) return;
+
+            const isOpen = panel.classList.contains('open');
+            if (isOpen) {
+                panel.classList.remove('open');
+                if (toggleBtn) toggleBtn.classList.remove('active');
+            } else {
+                panel.classList.add('open');
+                if (toggleBtn) toggleBtn.classList.add('active');
+                const textarea = document.getElementById(`notes-textarea-${unitNum}`);
+                if (textarea && !textarea.dataset.loaded) {
+                    textarea.value = 'Loading...';
+                    textarea.disabled = true;
+                    try {
+                        const notes = await getUnitNotes(subjectId, unitNum);
+                        textarea.value = notes;
+                    } catch (err) {
+                        textarea.value = '';
+                    }
+                    textarea.disabled = false;
+                    textarea.dataset.loaded = 'true';
+                }
+            }
+        }
+
+        // Save unit notes
+        async function handleSaveNotes(unitNum) {
+            const textarea = document.getElementById(`notes-textarea-${unitNum}`);
+            if (!textarea) return;
+            try {
+                await saveUnitNotes(subjectId, unitNum, textarea.value);
+                showToast(`Unit ${unitNum} notes saved! ✅`, 'success');
+            } catch (err) {
+                showToast('Failed to save notes: ' + err.message, 'error');
+            }
+        }
+
+        // Open topic notes modal
+        async function openTopicNotes(topicId, topicName) {
+            document.getElementById('notes-topic-id').value = topicId;
+            document.getElementById('notes-topic-title').textContent = topicName;
+            document.getElementById('topic-notes-content').value = 'Loading...';
+            document.getElementById('topic-notes-url').value = '';
+            openModal('topic-notes-modal');
+
+            try {
+                const result = await getTopicNotes(subjectId, topicId);
+                if (result.locked) {
+                    closeModal('topic-notes-modal');
+                    showToast('Complete this topic first to access notes', 'warning');
+                    return;
+                }
+                document.getElementById('topic-notes-content').value = result.notesContent || '';
+                document.getElementById('topic-notes-url').value = result.notesUrl || '';
+            } catch (err) {
+                document.getElementById('topic-notes-content').value = '';
+                showToast('Error loading notes', 'error');
+            }
+        }
+
+        // Save topic notes
+        async function handleSaveTopicNotes() {
+            const topicId = document.getElementById('notes-topic-id').value;
+            const content = document.getElementById('topic-notes-content').value;
+            const url = document.getElementById('topic-notes-url').value;
+            try {
+                await saveTopicNotes(subjectId, topicId, content, url);
+                showToast('Topic notes saved! 📝', 'success');
+                closeModal('topic-notes-modal');
+            } catch (err) {
+                showToast('Error saving notes: ' + err.message, 'error');
+            }
+        }
+
+        // Download all notes for a completed unit
+        async function downloadUnitNotes(unitNum) {
+            const unitTopics = currentAllTopics.filter(t => (t.unit || 1) === parseInt(unitNum));
+            let notesText = `=== Unit ${unitNum} Notes ===\n\n`;
+
+            // Get unit-level notes
+            try {
+                const unitNotes = await getUnitNotes(subjectId, unitNum);
+                if (unitNotes) notesText += `--- Unit Notes ---\n${unitNotes}\n\n`;
+            } catch (e) { }
+
+            // Aggregate topic notes
+            for (const topic of unitTopics) {
+                notesText += `--- ${topic.name} ---\n`;
+                if (topic.notesContent) notesText += topic.notesContent + '\n';
+                if (topic.notesUrl) notesText += `Link: ${topic.notesUrl}\n`;
+                notesText += '\n';
+            }
+
+            const blob = new Blob([notesText], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Unit_${unitNum}_Notes.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('Notes downloaded!', 'success');
+        }
+
+        async function handleAddTopic(e) {
+            e.preventDefault();
+            const name = document.getElementById('topic-name').value.trim();
+            const scoreVal = document.getElementById('topic-score').value;
+            const score = scoreVal !== '' ? parseInt(scoreVal) : null;
+            const unit = document.getElementById('topic-unit').value;
+
+            if (!name) {
+                showToast('Please enter a topic name', 'warning');
+                return;
+            }
+
+            try {
+                await addTopic(subjectId, name, score, unit);
+                showToast(`Topic "${name}" added to Unit ${unit}!`, 'success');
+                closeModal('add-topic-modal');
+                document.getElementById('add-topic-form').reset();
+            } catch (error) {
+                showToast('Error adding topic: ' + error.message, 'error');
+            }
+        }
+
+        async function handleToggleTopic(topicId, completed, topicName, unitNumber) {
+            try {
+                await toggleTopic(subjectId, topicId, completed);
+                showToast(completed ? 'Topic marked as completed! 🎉' : 'Topic marked as pending', completed ? 'success' : 'info');
+
+                // Log progress & check badges on completion
+                if (completed && currentSubjectName) {
+                    // Wait briefly for Firestore to propagate
+                    setTimeout(async () => {
+                        try {
+                            const newBadges = await logTopicCompletion(
+                                subjectId, currentSubjectName, topicName, unitNumber, currentAllTopics
+                            );
+                            if (newBadges && newBadges.length > 0) {
+                                newBadges.forEach(badge => {
+                                    showToast(`🏅 Badge Earned: ${badge.name}!`, 'success');
+                                });
+                            }
+                        } catch (e) {
+                            console.log('Badge check error:', e.message);
+                        }
+                    }, 1000);
+                }
+            } catch (error) {
+                showToast('Error updating topic', 'error');
+            }
+        }
+
+        function openEditTopic(id, name, score, unit) {
+            document.getElementById('edit-topic-id').value = id;
+            document.getElementById('edit-topic-name').value = name;
+            document.getElementById('edit-topic-score').value = score !== null && score !== undefined && !isNaN(score) ? score : '';
+            document.getElementById('edit-topic-unit').value = unit || 1;
+            openModal('edit-topic-modal');
+        }
+
+        async function handleEditTopic(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-topic-id').value;
+            const name = document.getElementById('edit-topic-name').value.trim();
+            const scoreVal = document.getElementById('edit-topic-score').value;
+            const score = scoreVal !== '' ? parseInt(scoreVal) : null;
+            const unit = parseInt(document.getElementById('edit-topic-unit').value) || 1;
+
+            if (!name) {
+                showToast('Topic name is required', 'warning');
+                return;
+            }
+
+            try {
+                await updateTopic(subjectId, id, { name, score, unit });
+                showToast('Topic updated!', 'success');
+                closeModal('edit-topic-modal');
+            } catch (error) {
+                showToast('Error updating topic: ' + error.message, 'error');
+            }
+        }
+
+        async function handleDeleteTopic(topicId, name) {
+            const confirmed = await confirmAction(`Delete topic "${name}"?`);
+            if (!confirmed) return;
+
+            try {
+                await deleteTopic(subjectId, topicId);
+                showToast('Topic deleted', 'success');
+            } catch (error) {
+                showToast('Error deleting topic: ' + error.message, 'error');
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML.replace(/'/g, "\\'");
+        }
+
+        // ---- Syllabus Upload for Topics Page ----
+        let topicsSyllabusFile = null;
+
+        function setupTopicsUpload() {
+            const dropzone = document.getElementById('topics-upload-dropzone');
+            const fileInput = document.getElementById('topics-syllabus-file');
+
+            ['dragenter', 'dragover'].forEach(evt => {
+                dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+            });
+            ['dragleave', 'drop'].forEach(evt => {
+                dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+            });
+            dropzone.addEventListener('drop', (e) => {
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'application/pdf') {
+                    topicsSyllabusFile = file;
+                    document.getElementById('topics-upload-filename-text').textContent = file.name;
+                    document.getElementById('topics-upload-filename').classList.add('visible');
+                } else {
+                    showToast('Please upload a PDF file', 'warning');
+                }
+            });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) {
+                    topicsSyllabusFile = e.target.files[0];
+                    document.getElementById('topics-upload-filename-text').textContent = topicsSyllabusFile.name;
+                    document.getElementById('topics-upload-filename').classList.add('visible');
+                }
+            });
+        }
+
+        // Initialize upload on page load
+        setupTopicsUpload();
+
+        async function handleTopicsSyllabusUpload() {
+            if (!topicsSyllabusFile) {
+                showToast('Please select a PDF file first', 'warning');
+                return;
+            }
+
+            closeModal('syllabus-upload-modal');
+            showProcessing('Parsing PDF...', `Extracting topics from ${topicsSyllabusFile.name}`);
+
+            try {
+                const pdfResult = await requestPDFParse(topicsSyllabusFile);
+
+                if (!pdfResult.topics || pdfResult.topics.length === 0) {
+                    hideProcessing();
+                    showToast('No topics could be extracted from the PDF.', 'warning');
+                    return;
+                }
+
+                let finalTopics = pdfResult.topics;
+                let finalSource = 'pdf';
+
+                // Try AI enhancement if available
+                try {
+                    const aiAvail = await checkAIAvailable();
+                    if (aiAvail && pdfResult.rawText) {
+                        showProcessing('AI Processing...', 'Enhancing extraction with AI');
+                        const aiResult = await requestAIExtraction(pdfResult.rawText);
+                        if (aiResult.topics && aiResult.topics.length > 0) {
+                            finalTopics = aiResult.topics;
+                            finalSource = 'ai';
+                        }
+                    }
+                } catch (aiErr) {
+                    console.log('AI extraction skipped:', aiErr.message);
+                }
+
+                hideProcessing();
+                renderTopicPreview('topics-preview-body', finalTopics, { source: finalSource });
+                openModal('topics-preview-modal');
+                showToast(`Extracted ${finalTopics.length} topics!`, 'success');
+
+                // Reset file
+                topicsSyllabusFile = null;
+                document.getElementById('topics-upload-filename').classList.remove('visible');
+                document.getElementById('topics-syllabus-file').value = '';
+            } catch (err) {
+                hideProcessing();
+                showToast('PDF parsing failed: ' + err.message, 'error');
+            }
+        }
+
+        async function handleTopicsSavePreview() {
+            const topics = getPreviewTopics();
+            if (topics.length === 0) {
+                showToast('No topics to save', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('topics-save-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const count = await autoGenerateTopics(subjectId, topics);
+                closeModal('topics-preview-modal');
+                showToast(`${count} topics auto-generated successfully! ✨`, 'success');
+            } catch (err) {
+                showToast('Failed to save topics: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Save Topics';
+            }
+        }
+
+        function showProcessing(title, msg) {
+            document.getElementById('processing-title').textContent = title || 'Processing...';
+            document.getElementById('processing-message').textContent = msg || '';
+            document.getElementById('processing-overlay').classList.add('active');
+        }
+        function hideProcessing() {
+            document.getElementById('processing-overlay').classList.remove('active');
+        }
+    </script>
+</body>
+
+</html>
