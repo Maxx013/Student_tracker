@@ -1,11 +1,22 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { PDFParse } = require('pdf-parse');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Rate limiter for AI endpoints (10 requests per minute per IP)
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Too many AI requests. Please wait a minute before trying again.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Middleware
 app.use(express.json());
@@ -63,6 +74,10 @@ app.get('/goals', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'goals.html'));
 });
 
+app.get('/ai-notes', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'ai-notes.html'));
+});
+
 // ============================================
 // API Routes
 // ============================================
@@ -103,11 +118,11 @@ app.post('/api/parse-pdf', upload.single('file'), async (req, res) => {
 // POST /api/ai-extract — Use AI to extract topics from text
 app.post('/api/ai-extract', async (req, res) => {
   const { text } = req.body;
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
     return res.status(400).json({
-      error: 'AI extraction not configured. Set OPENAI_API_KEY environment variable.',
+      error: 'AI extraction not configured. Set GROQ_API_KEY environment variable.',
       available: false
     });
   }
@@ -117,14 +132,14 @@ app.post('/api/ai-extract', async (req, res) => {
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'moonshotai/kimi-k2-instruct',
         messages: [
           {
             role: 'system',
@@ -171,7 +186,147 @@ app.post('/api/ai-extract', async (req, res) => {
 
 // GET /api/ai-status — Check if AI is configured
 app.get('/api/ai-status', (req, res) => {
-  res.json({ available: !!process.env.OPENAI_API_KEY });
+  res.json({ available: !!process.env.GROQ_API_KEY });
+});
+
+// ============================================
+// POST /api/ai/notes — Generate structured academic notes
+// ============================================
+app.post('/api/ai/notes', aiLimiter, async (req, res) => {
+  const { topic, subject, difficulty } = req.body;
+  const apiKey = process.env.GROQ_API_KEY;
+
+  if (!apiKey) {
+    return res.status(400).json({ error: 'AI not configured. Set GROQ_API_KEY environment variable.' });
+  }
+
+  if (!topic || topic.trim().length < 2) {
+    return res.status(400).json({ error: 'Please provide a valid topic.' });
+  }
+
+  const difficultyLabel = difficulty || 'Exam';
+  const subjectLabel = subject || 'General';
+
+  const systemPrompt = `You are an advanced academic tutor.
+
+Generate highly structured, exam-oriented notes for the topic: ${topic}
+Subject: ${subjectLabel}
+Difficulty Level: ${difficultyLabel}
+
+Include:
+1. Overview
+2. Detailed Explanation
+3. Key Concepts
+4. Important Definitions
+5. Real-world Examples
+6. Text-based Diagram (if applicable)
+7. Important Formulas (if any)
+8. 5 Short Answer Questions with Answers
+9. 3 Long Answer Questions with Answers
+10. 5 MCQs with Answers
+11. Common Mistakes
+12. Quick Revision Summary
+
+Make it suitable for BCA-level students.
+Use proper markdown headings and clean formatting.
+Use ## for main sections and ### for sub-sections.`;
+
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'moonshotai/kimi-k2-instruct',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Generate comprehensive ${difficultyLabel}-level notes on "${topic}" for the subject "${subjectLabel}".` }
+        ],
+        temperature: 0.7,
+        max_tokens: 4000
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'AI API request failed');
+    }
+
+    const content = data.choices?.[0]?.message?.content || 'No content generated.';
+    res.json({ success: true, notes: content });
+  } catch (error) {
+    console.error('AI Notes error:', error.message);
+    res.status(500).json({ error: 'Failed to generate notes: ' + error.message });
+  }
+});
+
+// ============================================
+// POST /api/ai/chat — Academic chatbot
+// ============================================
+app.post('/api/ai/chat', aiLimiter, async (req, res) => {
+  const { message, history } = req.body;
+  const apiKey = process.env.GROQ_API_KEY;
+
+  if (!apiKey) {
+    return res.status(400).json({ error: 'AI not configured. Set GROQ_API_KEY environment variable.' });
+  }
+
+  if (!message || message.trim().length < 1) {
+    return res.status(400).json({ error: 'Please provide a message.' });
+  }
+
+  const systemMessage = {
+    role: 'system',
+    content: `You are a helpful academic assistant chatbot.
+Answer clearly and concisely.
+Explain step-by-step when needed.
+Keep responses structured and easy to understand.
+Use markdown formatting for better readability.
+You specialize in helping BCA students with their studies.`
+  };
+
+  // Build messages array with history (last 10 messages max)
+  const messages = [systemMessage];
+  if (Array.isArray(history)) {
+    const recentHistory = history.slice(-10);
+    recentHistory.forEach(msg => {
+      if (msg.role && msg.content) {
+        messages.push({ role: msg.role, content: msg.content });
+      }
+    });
+  }
+  messages.push({ role: 'user', content: message });
+
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'moonshotai/kimi-k2-instruct',
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 1500
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'AI API request failed');
+    }
+
+    const reply = data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+    res.json({ success: true, reply });
+  } catch (error) {
+    console.error('AI Chat error:', error.message);
+    res.status(500).json({ error: 'Chat failed: ' + error.message });
+  }
 });
 
 // POST /api/validate-notes-access — Validate notes access server-side
@@ -257,5 +412,7 @@ app.listen(PORT, () => {
   console.log(`   API:`);
   console.log(`   - Parse PDF:  POST http://localhost:${PORT}/api/parse-pdf`);
   console.log(`   - AI Extract: POST http://localhost:${PORT}/api/ai-extract`);
+  console.log(`   - AI Notes:   POST http://localhost:${PORT}/api/ai/notes`);
+  console.log(`   - AI Chat:    POST http://localhost:${PORT}/api/ai/chat`);
   console.log(`   - AI Status:  GET  http://localhost:${PORT}/api/ai-status\n`);
 });

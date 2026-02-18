@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Notes - Student Progress Tracker</title>
+    <meta name="description" content="Generate structured study notes with AI assistance.">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- html2pdf for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body>
+
+    <div class="app-layout">
+        <!-- Sidebar Overlay (mobile) -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="/dashboard" class="nav-logo">
+                    <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+                    ProgressTrack
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="sidebar-nav-label">Main Menu</div>
+                <a href="/dashboard" class="sidebar-nav-item" id="nav-dashboard">
+                    <i class="fas fa-th-large"></i>
+                    Dashboard
+                </a>
+                <a href="/subjects" class="sidebar-nav-item" id="nav-subjects">
+                    <i class="fas fa-book-open"></i>
+                    Subjects
+                </a>
+                <a href="/goals" class="sidebar-nav-item" id="nav-goals">
+                    <i class="fas fa-bullseye"></i>
+                    Goals
+                </a>
+                <a href="/analytics" class="sidebar-nav-item" id="nav-analytics">
+                    <i class="fas fa-chart-bar"></i>
+                    Analytics
+                </a>
+                <a href="/ai-notes" class="sidebar-nav-item active" id="nav-ai-notes">
+                    <i class="fas fa-robot"></i>
+                    AI Notes
+                </a>
+
+                <div class="sidebar-nav-label" style="margin-top: var(--space-lg);">Account</div>
+                <a href="#" class="sidebar-nav-item" onclick="logoutUser()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="sidebar-avatar">US</div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name user-display-name">Loading...</div>
+                        <div class="sidebar-user-email user-display-email">...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <div class="top-navbar-left">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">AI Notes Generator</h1>
+                </div>
+                <div class="top-navbar-right">
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+                        <i class="fas fa-moon theme-toggle-icon"></i>
+                    </button>
+                    <div class="navbar-user">
+                        <i class="fas fa-user-circle" style="font-size:1.375rem; color: var(--primary-500);"></i>
+                        <span class="navbar-user-name user-display-name">Loading...</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="page-content">
+                <div class="ai-notes-layout">
+                    <!-- Left Panel - Controls -->
+                    <div class="ai-notes-controls">
+                        <div class="ai-notes-panel">
+                            <div class="ai-notes-panel-header">
+                                <div class="ai-notes-panel-icon">
+                                    <i class="fas fa-wand-magic-sparkles"></i>
+                                </div>
+                                <div>
+                                    <h3>Generate Notes</h3>
+                                    <p>AI-powered study material</p>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Subject</label>
+                                <select class="form-control" id="notes-subject">
+                                    <option value="">Select a subject...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Topic</label>
+                                <input type="text" class="form-control" id="notes-topic"
+                                    placeholder="e.g., Binary Search Trees">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Difficulty Level</label>
+                                <div class="difficulty-selector">
+                                    <label class="difficulty-option">
+                                        <input type="radio" name="difficulty" value="Basic">
+                                        <span class="difficulty-label">
+                                            <i class="fas fa-seedling"></i> Basic
+                                        </span>
+                                    </label>
+                                    <label class="difficulty-option">
+                                        <input type="radio" name="difficulty" value="Exam" checked>
+                                        <span class="difficulty-label">
+                                            <i class="fas fa-pen-to-square"></i> Exam
+                                        </span>
+                                    </label>
+                                    <label class="difficulty-option">
+                                        <input type="radio" name="difficulty" value="Advanced">
+                                        <span class="difficulty-label">
+                                            <i class="fas fa-rocket"></i> Advanced
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" id="generate-btn" onclick="generateNotes()"
+                                style="width:100%;">
+                                <i class="fas fa-bolt"></i>
+                                Generate Notes
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel - Notes Output -->
+                    <div class="ai-notes-output">
+                        <div class="ai-notes-panel">
+                            <!-- Action toolbar -->
+                            <div class="ai-notes-toolbar" id="notes-toolbar" style="display:none;">
+                                <div class="ai-notes-toolbar-title">
+                                    <i class="fas fa-file-lines" style="color: var(--primary-500);"></i>
+                                    Generated Notes
+                                </div>
+                                <div class="ai-notes-toolbar-actions">
+                                    <button class="btn btn-outline btn-sm" onclick="copyNotes()" title="Copy">
+                                        <i class="fas fa-copy"></i> Copy
+                                    </button>
+                                    <button class="btn btn-outline btn-sm" onclick="saveNotes()" title="Save">
+                                        <i class="fas fa-bookmark"></i> Save
+                                    </button>
+                                    <button class="btn btn-outline btn-sm" onclick="downloadPDF()" title="Download PDF">
+                                        <i class="fas fa-file-pdf"></i> PDF
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" onclick="generateNotes()" title="Regenerate">
+                                        <i class="fas fa-rotate"></i> Regenerate
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Notes content area -->
+                            <div class="ai-notes-content" id="notes-content">
+                                <div class="ai-notes-empty">
+                                    <div class="ai-notes-empty-icon">
+                                        <i class="fas fa-brain"></i>
+                                    </div>
+                                    <h3>Ready to Generate</h3>
+                                    <p>Select a subject, enter a topic, choose the difficulty level, and click
+                                        <strong>Generate Notes</strong> to create structured study material.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="/js/firebase-config.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/firestore.js"></script>
+    <script src="/js/chatbot.js"></script>
+
+    <script>
+        let currentNotesMarkdown = '';
+
+        // Protect page
+        requireAuth().then(async (user) => {
+            updateUserUI(user);
+            await loadSubjectsDropdown();
+        });
+
+        // Load subjects into dropdown from Firestore
+        async function loadSubjectsDropdown() {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+
+                const snapshot = await db.collection('users').doc(user.uid)
+                    .collection('subjects').orderBy('name').get();
+
+                const select = document.getElementById('notes-subject');
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const option = document.createElement('option');
+                    option.value = data.name;
+                    option.textContent = data.name;
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                console.log('Could not load subjects:', e.message);
+            }
+        }
+
+        // Generate notes
+        async function generateNotes() {
+            const topic = document.getElementById('notes-topic').value.trim();
+            const subject = document.getElementById('notes-subject').value;
+            const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value || 'Exam';
+
+            if (!topic) {
+                showToast('Please enter a topic!', 'warning');
+                document.getElementById('notes-topic').focus();
+                return;
+            }
+
+            const btn = document.getElementById('generate-btn');
+            const content = document.getElementById('notes-content');
+            const toolbar = document.getElementById('notes-toolbar');
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            content.innerHTML = `
+        <div class="ai-notes-loading">
+          <div class="spinner"></div>
+          <h3>Generating Notes...</h3>
+          <p>AI is creating structured ${difficulty}-level notes on "${topic}"</p>
+        </div>
+      `;
+            toolbar.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/ai/notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, subject, difficulty })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate notes');
+                }
+
+                currentNotesMarkdown = data.notes;
+
+                // Render markdown
+                content.innerHTML = `<div class="ai-notes-rendered markdown-body">${marked.parse(data.notes)}</div>`;
+                toolbar.style.display = 'flex';
+                showToast('Notes generated successfully!', 'success');
+
+            } catch (error) {
+                content.innerHTML = `
+          <div class="ai-notes-empty">
+            <div class="ai-notes-empty-icon" style="background: var(--danger-light); color: var(--danger);">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3>Generation Failed</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+                showToast(error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-bolt"></i> Generate Notes';
+            }
+        }
+
+        // Copy notes to clipboard
+        async function copyNotes() {
+            if (!currentNotesMarkdown) {
+                showToast('No notes to copy!', 'warning');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(currentNotesMarkdown);
+                showToast('Notes copied to clipboard!', 'success');
+            } catch {
+                // Fallback
+                const ta = document.createElement('textarea');
+                ta.value = currentNotesMarkdown;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+                showToast('Notes copied!', 'success');
+            }
+        }
+
+        // Save notes to Firestore
+        async function saveNotes() {
+            if (!currentNotesMarkdown) {
+                showToast('No notes to save!', 'warning');
+                return;
+            }
+
+            const user = auth.currentUser;
+            if (!user) {
+                showToast('Please login first.', 'error');
+                return;
+            }
+
+            try {
+                const topic = document.getElementById('notes-topic').value.trim();
+                const subject = document.getElementById('notes-subject').value;
+                const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value || 'Exam';
+
+                await db.collection('users').doc(user.uid).collection('ai_notes').add({
+                    topic,
+                    subject,
+                    difficulty,
+                    content: currentNotesMarkdown,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                showToast('Notes saved successfully!', 'success');
+            } catch (error) {
+                showToast('Failed to save notes: ' + error.message, 'error');
+            }
+        }
+
+        // Download as PDF
+        function downloadPDF() {
+            const rendered = document.querySelector('.ai-notes-rendered');
+            if (!rendered) {
+                showToast('No notes to download!', 'warning');
+                return;
+            }
+
+            const topic = document.getElementById('notes-topic').value.trim() || 'AI_Notes';
+            const filename = `${topic.replace(/\s+/g, '_')}_Notes.pdf`;
+
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            showToast('Generating PDF...', 'info');
+            html2pdf().set(opt).from(rendered).save().then(() => {
+                showToast('PDF downloaded!', 'success');
+            });
+        }
+    </script>
+</body>
+
+</html>
